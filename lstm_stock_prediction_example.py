@@ -33,6 +33,9 @@ import yfinance as yf
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.layers import LSTM, Dense, Input
 import datetime
+import os
+import pickle
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 
 # --- Feature Engineering ---
@@ -107,6 +110,12 @@ class StockPredictor:
         self.tY = None
         self.model = None
 
+        # Add weight/scaler persistence
+        self.weights_dir = "model_weights"
+        os.makedirs(self.weights_dir, exist_ok=True)
+        self.weights_path = os.path.join(self.weights_dir, f"{ticker}_weights.h5")
+        self.scaler_path = os.path.join(self.weights_dir, f"{ticker}_scaler.pkl")
+
     def load_data(self):
         # Yahoo only allows up to 7 days of 1m data as of 2025
         data = yf.download(self.ticker, period="7d", interval="1m")
@@ -116,10 +125,28 @@ class StockPredictor:
         self.data = data
         return data
 
+    def save_scaler(self):
+        with open(self.scaler_path, 'wb') as f:
+            pickle.dump(self.scaler, f)
+
+    def load_scaler(self):
+        try:
+            with open(self.scaler_path, 'rb') as f:
+                self.scaler = pickle.load(f)
+            print(f"Loaded existing scaler for {self.ticker}")
+            return True
+        except FileNotFoundError:
+            print(f"No existing scaler found for {self.ticker}")
+            return False
+
     def prepare_features(self):
+        scaler_loaded = self.load_scaler()
         self.features = FeatureEngineer.make_features(self.data)
         self.times = self.data.index.to_pydatetime()
-        self.features_scaled = self.scaler.fit_transform(self.features)
+        if scaler_loaded:
+            self.features_scaled = self.scaler.transform(self.features)
+        else:
+            self.features_scaled = self.scaler.fit_transform(self.features)
         X, Y, tY = [], [], []
         for i in range(self.n_past, len(self.features_scaled)-1):
             X.append(self.features_scaled[i-self.n_past:i, :])
@@ -142,7 +169,25 @@ class StockPredictor:
     def fit_model(self):
         self.model = StockLSTMModel(self.n_past, self.X.shape[2], self.epochs, self.batch_size)
         X_train, Y_train, X_test, Y_test, t_test = self.train_test_split()
+        # Try to load existing weights
+        if os.path.exists(self.weights_path):
+            try:
+                self.model.model.load_weights(self.weights_path)
+                print(f"Loaded existing weights for {self.ticker} - continuing training...")
+            except Exception as e:
+                print(f"Could not load weights for {self.ticker}: {e}")
+                print("Training from scratch...")
+        else:
+            print(f"No existing weights found for {self.ticker} - training new model...")
+        print(f"Training {self.ticker} for {self.epochs} epochs...")
         self.model.fit(X_train, Y_train)
+        # Save weights after training
+        try:
+            self.model.model.save_weights(self.weights_path)
+            self.save_scaler()
+            print(f"Saved updated weights and scaler for {self.ticker}")
+        except Exception as e:
+            print(f"Could not save weights for {self.ticker}: {e}")
         return X_train, Y_train, X_test, Y_test, t_test
 
     def predict_today(self, X_test, Y_test):
@@ -211,6 +256,14 @@ def main():
         except Exception as e:
             print(f"Error for {ticker}: {e}")
             continue
+
+        # --- Add accuracy stats here ---
+        mse = mean_squared_error(Y_test_inv, Y_pred_test_inv)
+        mae = mean_absolute_error(Y_test_inv, Y_pred_test_inv)
+        r2 = r2_score(Y_test_inv, Y_pred_test_inv)
+        print(f"Stats for {ticker}: MSE={mse:.4f}, MAE={mae:.4f}, R2={r2:.4f}")
+        print("If MSE/MAE get lower and R² gets closer to 1, your model is improving.")
+        print("If MSE/MAE start increasing or R² drops as you train more, you may be overfitting.")
 
         # Plot today (actual + predicted) - clean style
         ax_today = axs[idx, 0]
