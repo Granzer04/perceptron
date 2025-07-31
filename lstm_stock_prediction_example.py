@@ -188,7 +188,7 @@ class StockPredictor:
 
 # --- Main Orchestration ---
 def main():
-    TICKERS = ["SPY", "AMZN", "NVDA", "MSFT"]
+    TICKERS = ["SPY", "AMZN", "NVDA", "FI"]
     N_PAST = 60  # Use more past data for better learning
     FUTURE_MINUTES = 150  # Predict until mid-day (2.5 hours from 9:30am)
     EPOCHS = 100  # Maximize training
@@ -212,33 +212,17 @@ def main():
             print(f"Error for {ticker}: {e}")
             continue
 
-        # Plot today (actual + predicted) with input data and decision boundary
+        # Plot today (actual + predicted) - clean style
         ax_today = axs[idx, 0]
         ax_today.plot(t_test, Y_test_inv, label='Actual Today', color='black')
         ax_today.plot(t_test, Y_pred_test_inv, label='Predicted Today', color='blue')
-        # Overlay input data (open prices)
-        open_prices = predictor.data['Open'].values
-        open_times = predictor.data.index.to_pydatetime()
-        ax_today.scatter(open_times, open_prices, color='gray', s=5, alpha=0.3, label='Input Open Prices')
-        # Add a simple decision boundary (linear fit to predicted vs actual)
-        try:
-            from sklearn.linear_model import LinearRegression
-            import numpy as np
-            X_plot = np.array(Y_pred_test_inv).reshape(-1, 1)
-            y_plot = np.array(Y_test_inv)
-            if len(X_plot) > 1:
-                reg = LinearRegression().fit(X_plot, y_plot)
-                y_boundary = reg.predict(X_plot)
-                ax_today.plot(t_test, y_boundary, color='green', linestyle='--', label='Decision Boundary (Linear Fit)')
-        except Exception:
-            pass
         ax_today.set_title(f"{ticker} Today (Market Hours)")
         ax_today.set_xlabel("Time")
         ax_today.set_ylabel("Open Price")
         ax_today.legend()
         ax_today.grid(True)
 
-        # Plot tomorrow (predicted)
+        # Plot tomorrow (predicted) - clean style
         ax_tomorrow = axs[idx, 1]
         ax_tomorrow.plot(future_times, future_preds, label='Tomorrow Predicted', color='red', linestyle='--')
         ax_tomorrow.set_title(f"{ticker} Tomorrow (First Hour, Predicted)")
@@ -246,14 +230,17 @@ def main():
         ax_tomorrow.set_ylabel("Open Price")
         ax_tomorrow.legend()
         ax_tomorrow.grid(True)
+        # Annotate open and close in red
+        y_min, y_max = min(future_preds), max(future_preds)
+        y_offset = (y_max - y_min) * 0.10 if y_max > y_min else 1.0
         ax_tomorrow.annotate(f"Open: {future_preds[0]:.2f}",
                             xy=(future_times[0], future_preds[0]),
-                            xytext=(future_times[0], future_preds[0] + (max(future_preds)-min(future_preds)) * 0.10),
+                            xytext=(future_times[0], future_preds[0] + y_offset),
                             va='center', color='red', fontsize=11,
                             arrowprops=dict(arrowstyle='->', color='red'))
         ax_tomorrow.annotate(f"Close: {future_preds[-1]:.2f}",
                             xy=(future_times[-1], future_preds[-1]),
-                            xytext=(future_times[-1], future_preds[-1] + (max(future_preds)-min(future_preds)) * 0.10),
+                            xytext=(future_times[-1], future_preds[-1] + y_offset),
                             va='center', color='red', fontsize=11,
                             arrowprops=dict(arrowstyle='->', color='red'))
         print(f"Tomorrow's predicted open: {future_preds[0]:.2f}, close: {future_preds[-1]:.2f}")
