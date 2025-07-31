@@ -1,0 +1,69 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Virtual environments
+.venv/
+.venv*/
+venv/
+ENV/
+env/
+
+# VS Code settings
+.vscode/
+
+# Distribution / packaging
+.Python
+dist/
+build/
+egg-info/
+*.egg
+*.egg-info
+
+# Data/cache/logs
+*.log
+*.csv
+*.h5
+*.sqlite3
+*.db
+*.pkl
+*.joblib
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test outputs
+htmlcov/
+.coverage
+.tox/
+
+# Ignore large data and model files
+*.ckpt
+*.pb
+*.hdf5
+*.weights.h5
+*.onnx
+*.tflite
+*.npz
+*.npy
+
+# Ignore pipenv/poetry
+Pipfile.lock
+poetry.lock
+
+# Ignore Anaconda
+*.conda
+*.ipynb
+
+# Ignore user secrets
+secrets.env
+.env
+.env.*
