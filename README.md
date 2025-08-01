@@ -8,6 +8,27 @@ A perceptron is the simplest type of artificial neural network. It takes several
 ## Project Structure
 - `perceptron.py`: Contains the Perceptron class with methods for training and prediction. The code is commented for beginners.
 - `main.py`: Example script that trains the perceptron on the AND logic gate and tests its predictions.
+- `lstm_stock_prediction_example.py`: LSTM model for stock price prediction with incremental learning and accuracy stats.
+
+## LSTM Model Weights & Incremental Learning
+
+- After each run, the script saves model weights and the data scaler for each ticker in the `model_weights/` folder (e.g., `model_weights/SPY_weights.h5`, `model_weights/SPY_scaler.pkl`).
+- On the next run, the script will automatically load these weights and scaler, so your model continues learning from where it left off.
+- This allows for true incremental training: you can keep improving your model over time without starting from scratch.
+- If you delete the files in `model_weights/`, the model will start fresh on the next run.
+
+## LSTM Accuracy Statistics & Overfitting Guidance
+
+- After each run, the script prints accuracy statistics for each ticker:
+  - **MSE** (Mean Squared Error)
+  - **MAE** (Mean Absolute Error)
+  - **R²** (Coefficient of Determination)
+- The output includes guidance:
+  ```
+  If MSE/MAE get lower and R² gets closer to 1, your model is improving.
+  If MSE/MAE start increasing or R² drops as you train more, you may be overfitting.
+  ```
+- Use these stats to monitor your model’s performance and decide when to stop training or adjust parameters.
 
 ## How it Works
 1. **Initialization**: The perceptron starts with all weights set to zero.
@@ -23,6 +44,7 @@ A perceptron is the simplest type of artificial neural network. It takes several
    - `python mlp_addition_example.py` — Test the MLP on simple addition.
    - `python mlp_division_example.py` — Test the MLP on division (with a graph).
    - `python mlp_mnist_example.py` — Test the MLP on handwritten digit recognition (MNIST).
+   - `python lstm_stock_prediction_example.py` — Test the LSTM on stock price prediction.
 3. Check the outputs in the terminal and look at any graphs that pop up.
 
 ## How to Lower the Cost (Loss/Error)
